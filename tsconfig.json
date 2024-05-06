@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    "resolveJsonModule": true,
+    "removeComments": true,
+    "allowSyntheticDefaultImports": true,
+    "preserveConstEnums": true
+  }
+}

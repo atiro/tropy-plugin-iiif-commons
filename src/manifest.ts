@@ -1,23 +1,8 @@
+import { Traverse, normalize, serialize, serializeConfigPresentation3 } from '@iiif/parser';
+
+
 const assert = require('assert')
 const { CONTEXTS, dc, dcterms, oa, rdf, rdfs, sc, svcs } = require('./ns')
-
-async function expand(jsonld, data) {
-  return jsonld.expand(data, {
-    documentLoader: (url, options) => {
-      if (url in CONTEXTS) {
-        return {
-          contextUrl: null,
-          document: CONTEXTS[url],
-          documentUrl: url
-        }
-      }
-
-      console.warn('fetching uncached context', url)
-
-      return jsonld.documentLoader(url, options)
-    }
-  })
-}
 
 const LINK = /<a[^h]+href=['"]([^'"]+)['"][^>]*>([^<]*)<\/a>/gi
 const HTML = /<\/?(span|div|a|p|b|i|strong|em|ol|ul|li)\b[^>]*>/gi
@@ -41,11 +26,13 @@ function blank(value) {
 }
 
 class Resource {
+  public data: any;
+
   constructor(data = {}) {
     this.data = data
   }
 
-  get props() {
+  public properties() {
     return {
       ...this.getDescriptiveProperties(),
       ...this.getRightsAndLicensingProperties(),
@@ -155,8 +142,8 @@ class Resource {
   }
 }
 
-class Image extends Resource {
-  static ext(format) {
+class TropyIIIFImage extends Resource {
+  static extension(format) {
     switch (format) {
       case 'image/tiff':
         return '.tif'
@@ -175,8 +162,8 @@ class Image extends Resource {
     }
   }
 
-  get props() {
-    let props = super.props
+  public properties() {
+    let props = super.properties()
     let [protocol, path] = this.url.split('://', 2)
 
     return {
@@ -192,50 +179,64 @@ class Image extends Resource {
     let service = body[svcs('has_service')]?.[0]
 
     if (service)
-      return `${service['@id']}/full/full/0/default${Image.ext(format)}`
+      return `${service['@id']}/full/full/0/default${TropyIIIFImage.extension(format)}`
     else
       return body['@id']
   }
 }
 
-class Canvas extends Resource {
+export class TropyIIIFCanvas extends Resource {
   get images() {
     return (this.data[sc('hasImageAnnotations')]?.[0]['@list'] || []).map(
-      (data) => new Image(data)
+      (data) => new TropyIIIFImage(data)
     )
   }
 }
 
-class Manifest extends Resource {
-  static async parse(data, jsonld) {
-    let expanded = await expand(jsonld, data)
+export class TropyIIIFManifest extends Resource {
 
-    return expanded.map((manifest) => {
-      assert.equal(
-        sc('Manifest'),
-        manifest['@type']?.[0],
-        'not a IIIF Presentation API 2.0 manifest'
-      )
-      return new this(manifest)
-    })
+  protected entities: any;
+  protected mapping: any;
+  protected resource: any;
+  protected manifest: any;
+
+  constructor(data = {}) {
+	super(data)
+	let normalized = normalize(data);
+	this.entities = normalized.entities;
+	this.mapping = normalized.mapping;
+	this.resource = normalized.resource;
+	this.manifest = serialize(
+			{
+				mapping: normalized.mapping,
+				entities: normalized.entities,
+				requests: {},
+			},
+			normalized.resource,
+			serializeConfigPresentation3
+		);
   }
 
-  get canvases() {
+  public get canvases() {
+    return this.entities.Canvas
+  }
+
+//  get canvases() {
     // Currently returns only the primary sequence!
-    return (
-      this.data[sc('hasSequences')]?.[0]['@list'][0][sc('hasCanvases')]?.[0][
-      '@list'
-      ] || []
-    ).map((data) => new Canvas(data))
-  }
+//    return (
+//      this.data[sc('hasSequences')]?.[0]['@list'][0][sc('hasCanvases')]?.[0][
+//      '@list'
+//      ] || []
+//    ).map((data) => new Canvas(data))
+//  }
 
-  get images() {
+  public get images() {
     return this.canvases.flatMap((c) => c.images)
   }
 }
 
 module.exports = {
-  Canvas,
-  Image,
-  Manifest
+	TropyIIIFManifest,
+	TropyIIIFCanvas,
+	TropyIIIFImage
 }

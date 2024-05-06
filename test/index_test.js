@@ -1,12 +1,12 @@
 const assert = require('assert')
-const IIIFPlugin = require('../src/plugin.js')
+const IIIFCommonsPlugin = require('../src/plugin.js')
 
-describe('IIIF Plugin', () => {
+describe('IIIF Commons Plugin', () => {
   it('exists', () => {
-    assert.equal(typeof IIIFPlugin, 'function')
+    assert.equal(typeof IIIFCommonsPlugin, 'function')
   })
 
   it('responds to import hook', () => {
-    assert.equal(typeof (new IIIFPlugin).import, 'function')
+    assert.equal(typeof (new IIIFCommonsPlugin).import, 'function')
   })
 })

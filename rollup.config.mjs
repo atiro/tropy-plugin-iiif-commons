@@ -1,15 +1,15 @@
-import commonjs from '@rollup/plugin-commonjs'
 import license from 'rollup-plugin-license'
 import resolve from '@rollup/plugin-node-resolve'
 import json from '@rollup/plugin-json'
+import typescript from '@rollup/plugin-typescript'
 
 export default {
-  input: 'src/plugin.js',
+  input: 'src/plugin.ts',
   output: {
     file: 'index.js',
-    format: 'cjs',
-    exports: 'default',
-    generatedCode: 'es2015'
+	exports: 'named',
+	generatedCode: 'es2015',
+    format: 'cjs'
   },
   external: ['electron'],
   plugins: [
@@ -17,8 +17,8 @@ export default {
       exportConditions: ['node'],
       preferBuiltins: true
     }),
+	typescript(),
     json(),
-    commonjs(),
     license({
       thirdParty: {
         includePrivate: true,
